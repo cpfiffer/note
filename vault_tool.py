@@ -52,7 +52,7 @@ def vault(
     
     # Check enabled commands ("all" or "*" enables everything)
     all_commands = ["create", "view", "attach", "detach", "insert", "append", "replace", "rename", "copy", "delete", "list", "search", "attached"]
-    enabled_env = os.environ.get("ENABLED_COMMANDS", "create,view,attach,detach,insert,append,replace,rename,copy,list,search,attached")
+    enabled_env = os.environ.get("ENABLED_COMMANDS", "all")
     enabled = all_commands if enabled_env in ("all", "*") else enabled_env.split(",")
     if command not in enabled:
         return f"Error: '{command}' is disabled. Enabled: {enabled}"

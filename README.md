@@ -38,6 +38,23 @@ python create_vault_tool.py
 - **Bulk operations** - Support for wildcards like `attach /folder/*`
 - **Auto-maintained directory** - A `/vault_directory` block shows all items
 
+## Command Permissions
+
+By default, all commands are enabled. You can restrict which commands are available by setting the `ENABLED_COMMANDS` environment variable on your Letta server:
+
+```bash
+# Enable all commands (default)
+ENABLED_COMMANDS="all"
+
+# Disable delete (safer for production)
+ENABLED_COMMANDS="create,view,attach,detach,insert,append,replace,rename,copy,list,search,attached"
+
+# Read-only mode
+ENABLED_COMMANDS="view,list,search,attached"
+```
+
+Disabled commands will return an error message listing which commands are enabled.
+
 ## License
 
 MIT
