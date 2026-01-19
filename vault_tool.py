@@ -2,7 +2,7 @@ from typing import Literal, Optional
 import re
 
 
-def note(
+def vault(
     command: str,
     path: Optional[str] = None,
     content: Optional[str] = None,
@@ -14,26 +14,26 @@ def note(
     search_type: str = "label",
 ) -> str:
     """
-    Manage notes in your vault. All notes are automatically scoped to your agent.
+    Manage items in your vault. All items are automatically scoped to your agent.
     
     Commands:
-      create <path> <content>             - create new note (not attached)
-      view <path>                         - read note contents
+      create <path> <content>             - create new item (not attached)
+      view <path>                         - read item contents
       attach <path> [content]             - load into context (supports /folder/*)
       detach <path>                       - remove from context (supports /folder/*)
       insert <path> <content> [line]      - insert before line (0-indexed) or append
-      append <path> <content>             - add content to end of note
+      append <path> <content>             - add content to end of item
       replace <path> <old_str> <new_str>  - find/replace, shows diff
-      rename <path> <new_path>            - move/rename note to new path
-      copy <path> <new_path>              - duplicate note to new path
+      rename <path> <new_path>            - move/rename item
+      copy <path> <new_path>              - duplicate item
       delete <path>                       - permanently remove
-      list [query]                        - list notes (prefix filter, * for all)
-      search <query> [label|content]      - grep notes by label or content
-      attached                            - show notes currently in context
+      list [query]                        - list items (prefix filter, * for all)
+      search <query> [label|content]      - grep items by label or content
+      attached                            - show items currently in context
     
     Args:
         command: The operation to perform
-        path: Path to the note (e.g., /projects/webapp, /todo)
+        path: Path to the item (e.g., /projects/webapp, /todo)
         content: Content to insert or initial content when creating
         old_str: Text to find (for replace)
         new_str: Text to replace with (for replace)
@@ -48,6 +48,7 @@ def note(
     import os
     
     agent_id = os.environ.get("LETTA_AGENT_ID")
+    owner_tag = f"owner:{agent_id}"
     
     # Check enabled commands ("all" or "*" enables everything)
     all_commands = ["create", "view", "attach", "detach", "insert", "append", "replace", "rename", "copy", "delete", "list", "search", "attached"]
@@ -83,22 +84,22 @@ def note(
     try:
         if command == "create":
             # Check for existing note with same path
-            existing = list(client.blocks.list(label=path, description_search=agent_id).items)
+            existing = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if existing:
-                return f"Error: Note already exists: {path}"
+                return f"Error: Item already exists: {path}"
             
             client.blocks.create(
                 label=path,
                 value=content,
-                description=f"owner:{agent_id}"
+                tags=[owner_tag]
             )
             update_directory = True
             result = f"Created: {path}"
         
         elif command == "view":
-            blocks = list(client.blocks.list(label=path, description_search=agent_id).items)
+            blocks = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if not blocks:
-                return f"Note not found: {path}"
+                return f"Item not found: {path}"
             return blocks[0].value
         
         elif command == "attach":
@@ -109,11 +110,11 @@ def note(
             # Handle bulk wildcard: /folder/*
             if path.endswith("/*"):
                 prefix = path[:-1]  # "/folder/*" → "/folder/"
-                all_blocks = list(client.blocks.list(description_search=agent_id).items)
+                all_blocks = list(client.blocks.list(tags=[owner_tag]).items)
                 blocks = [b for b in all_blocks if b.label and b.label.startswith(prefix)
                           and not uuid_pattern.search(b.label)]
                 if not blocks:
-                    return f"No notes matching: {path}"
+                    return f"No items matching: {path}"
                 
                 to_attach = [b for b in blocks if b.id not in attached_ids]
                 skipped = len(blocks) - len(to_attach)
@@ -121,13 +122,13 @@ def note(
                 for block in to_attach:
                     client.agents.blocks.attach(agent_id=agent_id, block_id=block.id)
                 
-                msg = f"Attached {len(to_attach)} notes matching {path}"
+                msg = f"Attached {len(to_attach)} items matching {path}"
                 if skipped:
                     msg += f" ({skipped} already attached)"
                 return msg
             
             # Single note attach
-            existing = list(client.blocks.list(label=path, description_search=agent_id).items)
+            existing = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if existing:
                 block_id = existing[0].id
                 if block_id in attached_ids:
@@ -136,7 +137,7 @@ def note(
                 new_block = client.blocks.create(
                     label=path,
                     value=content or "",
-                    description=f"owner:{agent_id}"
+                    tags=[owner_tag]
                 )
                 block_id = new_block.id
                 update_directory = True  # New note created
@@ -152,28 +153,28 @@ def note(
                 agent = client.agents.retrieve(agent_id=agent_id)
                 attached_ids = {b.id for b in agent.memory.blocks}
                 
-                all_blocks = list(client.blocks.list(description_search=agent_id).items)
+                all_blocks = list(client.blocks.list(tags=[owner_tag]).items)
                 blocks = [b for b in all_blocks if b.label and b.label.startswith(prefix)
                           and not uuid_pattern.search(b.label)
                           and b.id in attached_ids]  # Only detach if actually attached
                 if not blocks:
-                    return f"No attached notes matching: {path}"
+                    return f"No attached items matching: {path}"
                 for block in blocks:
                     client.agents.blocks.detach(agent_id=agent_id, block_id=block.id)
-                return f"Detached {len(blocks)} notes matching {path}"
+                return f"Detached {len(blocks)} items matching {path}"
             
             # Single note detach
-            blocks = list(client.blocks.list(label=path, description_search=agent_id).items)
+            blocks = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if not blocks:
-                return f"Note not found: {path}"
+                return f"Item not found: {path}"
             
             client.agents.blocks.detach(agent_id=agent_id, block_id=blocks[0].id)
             return f"Detached: {path}"
         
         elif command == "insert":
-            blocks = list(client.blocks.list(label=path, description_search=agent_id).items)
+            blocks = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if not blocks:
-                return f"Note not found: {path}. Use 'attach' first."
+                return f"Item not found: {path}. Use 'attach' first."
             
             block = blocks[0]
             lines = block.value.split("\n") if block.value else []
@@ -191,9 +192,9 @@ def note(
             return f"Inserted at {line_info} in {path}:\n  + {preview}"
         
         elif command == "append":
-            blocks = list(client.blocks.list(label=path, description_search=agent_id).items)
+            blocks = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if not blocks:
-                return f"Note not found: {path}. Use 'attach' first."
+                return f"Item not found: {path}. Use 'attach' first."
             
             block = blocks[0]
             if block.value:
@@ -208,12 +209,12 @@ def note(
         
         elif command == "rename":
             # Check source exists
-            blocks = list(client.blocks.list(label=path, description_search=agent_id).items)
+            blocks = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if not blocks:
-                return f"Note not found: {path}"
+                return f"Item not found: {path}"
             
             # Check destination doesn't exist
-            dest_blocks = list(client.blocks.list(label=new_path, description_search=agent_id).items)
+            dest_blocks = list(client.blocks.list(label=new_path, tags=[owner_tag]).items)
             if dest_blocks:
                 return f"Error: Destination already exists: {new_path}"
             
@@ -225,12 +226,12 @@ def note(
         
         elif command == "copy":
             # Check source exists
-            blocks = list(client.blocks.list(label=path, description_search=agent_id).items)
+            blocks = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if not blocks:
-                return f"Note not found: {path}"
+                return f"Item not found: {path}"
             
             # Check destination doesn't exist
-            dest_blocks = list(client.blocks.list(label=new_path, description_search=agent_id).items)
+            dest_blocks = list(client.blocks.list(label=new_path, tags=[owner_tag]).items)
             if dest_blocks:
                 return f"Error: Destination already exists: {new_path}"
             
@@ -239,15 +240,15 @@ def note(
             client.blocks.create(
                 label=new_path,
                 value=source.value,
-                description=f"owner:{agent_id}"
+                tags=[owner_tag]
             )
             update_directory = True
             result = f"Copied: {path} → {new_path}"
         
         elif command == "replace":
-            blocks = list(client.blocks.list(label=path, description_search=agent_id).items)
+            blocks = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if not blocks:
-                return f"Note not found: {path}"
+                return f"Item not found: {path}"
             
             block = blocks[0]
             if old_str not in block.value:
@@ -259,16 +260,16 @@ def note(
             return f"Replaced in {path}:\n  - {old_str}\n  + {new_str}"
         
         elif command == "delete":
-            blocks = list(client.blocks.list(label=path, description_search=agent_id).items)
+            blocks = list(client.blocks.list(label=path, tags=[owner_tag]).items)
             if not blocks:
-                return f"Note not found: {path}"
+                return f"Item not found: {path}"
             
             client.blocks.delete(block_id=blocks[0].id)
             update_directory = True
             result = f"Deleted: {path}"
         
         elif command == "list":
-            all_blocks = list(client.blocks.list(description_search=agent_id).items)
+            all_blocks = list(client.blocks.list(tags=[owner_tag]).items)
             
             # Filter to path-like labels, exclude legacy UUID paths
             blocks = [b for b in all_blocks 
@@ -280,14 +281,14 @@ def note(
                 blocks = [b for b in blocks if b.label.startswith(query)]
             
             if not blocks:
-                return "No notes found" if not query or query == "*" else f"No notes matching: {query}"
+                return "No items found" if not query or query == "*" else f"No items matching: {query}"
             
             # Deduplicate and sort
             labels = sorted(set(b.label for b in blocks))
             return "\n".join(labels)
         
         elif command == "search":
-            all_blocks = list(client.blocks.list(description_search=agent_id).items)
+            all_blocks = list(client.blocks.list(tags=[owner_tag]).items)
             
             # Filter out legacy UUID paths
             all_blocks = [b for b in all_blocks 
@@ -300,7 +301,7 @@ def note(
                 blocks = [b for b in all_blocks if b.value and query in b.value]
             
             if not blocks:
-                return f"No notes matching: {query}"
+                return f"No items matching: {query}"
             
             results = []
             for b in blocks:
@@ -318,30 +319,30 @@ def note(
                           and not uuid_pattern.search(b.label)]
             
             if not note_blocks:
-                return "No notes currently attached"
+                return "No items currently attached"
             
             return "\n".join(sorted(b.label for b in note_blocks))
         
         else:
             return f"Error: Unknown command '{command}'"
         
-        # Update note_directory if needed
+        # Update vault_directory if needed
         if update_directory:
-            dir_label = "/note_directory"
-            # Get all notes
-            all_blocks = list(client.blocks.list(description_search=agent_id).items)
-            notes = [b for b in all_blocks 
+            dir_label = "/vault_directory"
+            # Get all items
+            all_blocks = list(client.blocks.list(tags=[owner_tag]).items)
+            items = [b for b in all_blocks 
                      if b.label and b.label.startswith("/") 
                      and b.label != dir_label
                      and not uuid_pattern.search(b.label)]
             
             # Header for the directory
-            header = "External storage. Attach to load into context, detach when done.\nFolders are also notes (e.g., /projects and /projects/task1 can both have content).\nCommands: view, attach, detach, insert, append, replace, rename, copy, delete, list, search\nBulk: attach /folder/*, detach /folder/*"
+            header = "External storage. Attach to load into context, detach when done.\nFolders are also items (e.g., /projects and /projects/task1 can both have content).\nCommands: view, attach, detach, insert, append, replace, rename, copy, delete, list, search\nBulk: attach /folder/*, detach /folder/*"
             
-            if notes:
-                # Group notes by folder
+            if items:
+                # Group items by folder
                 folders = {}
-                for b in sorted(notes, key=lambda x: x.label):
+                for b in sorted(items, key=lambda x: x.label):
                     parts = b.label.rsplit("/", 1)
                     if len(parts) == 2:
                         folder, name = parts[0] + "/", parts[1]
@@ -358,17 +359,17 @@ def note(
                 lines = []
                 for folder in sorted(folders.keys()):
                     lines.append(folder)
-                    items = folders[folder]
-                    max_name_len = max(len(name) for name, _ in items)
-                    for name, summary in items:
+                    folder_items = folders[folder]
+                    max_name_len = max(len(name) for name, _ in folder_items)
+                    for name, summary in folder_items:
                         lines.append(f"  {name.ljust(max_name_len)} | {summary}")
                 
                 dir_content = header + "\n\n" + "\n".join(lines)
             else:
-                dir_content = header + "\n\n(no notes)"
+                dir_content = header + "\n\n(no items)"
             
             # Find or create directory block
-            dir_blocks = list(client.blocks.list(label=dir_label, description_search=agent_id).items)
+            dir_blocks = list(client.blocks.list(label=dir_label, tags=[owner_tag]).items)
             if dir_blocks:
                 client.blocks.update(block_id=dir_blocks[0].id, value=dir_content)
             else:
@@ -376,7 +377,7 @@ def note(
                 dir_block = client.blocks.create(
                     label=dir_label,
                     value=dir_content,
-                    description=f"owner:{agent_id}"
+                    tags=[owner_tag]
                 )
                 client.agents.blocks.attach(agent_id=agent_id, block_id=dir_block.id)
         
