@@ -349,8 +349,8 @@ def note(
                         folder, name = "/", b.label[1:]  # Root level
                     if folder not in folders:
                         folders[folder] = []
-                    first_line = (b.value or "").split("\n")[0][:40]
-                    if len((b.value or "").split("\n")[0]) > 40:
+                    first_line = (b.value or "").split("\n")[0][:80]
+                    if len((b.value or "").split("\n")[0]) > 80:
                         first_line += "..."
                     folders[folder].append((name, first_line))
                 

@@ -1,10 +1,10 @@
-# Letta Notes
+# Letta Note
 
-The note tool enables **context mounting** for Letta agents - a form of progressive disclosure that lets agents manage memory blocks as if they were a file system.
+A [custom tool](https://docs.letta.com/guides/agents/custom-tools/) that gives [Letta agents](https://docs.letta.com/guides/agents/) a file system for their [memory blocks](https://docs.letta.com/guides/agents/memory/).
 
-Instead of loading everything into context at once, agents can work with an arbitrary number of text files, attaching only what's needed for the current task. This allows for active, distributed memory management - agents can peek, view, and organize information across a structured hierarchy rather than cramming everything into a single context window.
+Agents can store an arbitrary number of notes, organized into folders, and selectively attach them to their [context window](https://docs.letta.com/guides/agents/context-engineering/) when needed. This enables progressive disclosure: instead of loading everything at once, agents mount only what's relevant to the current task.
 
-Think of it as giving your agent a personal file system for structured memory. Notes persist across sessions, can be organized into folders, and are mounted/unmounted from context on demand.
+Notes persist in your Letta server and can be viewed, edited, searched, and reorganized on demand.
 
 ## Installation
 
@@ -65,10 +65,16 @@ note detach /folder/*              # Detach all
 /shared/            # Cross-agent shared content
 ```
 
+## Note Directory
+
+A `/note_directory` block is automatically maintained and attached to your agent. It displays all notes in a tree view with the first 80 characters of each note's first line as a preview.
+
+Write descriptive first lines - they serve as the summary in your directory listing.
+
 ## Tips
 
-1. **Notes persist across sessions** - anything stored survives conversation resets
-2. **Folders are also notes** - `/projects` and `/projects/task1` can both have content
-3. **Search before creating** - use `note search <query>` to find existing content
-4. **Prefer append over replace** for logs/journals to avoid data loss
-5. **Use descriptive paths** - they're your only way to find things later
+1. **Notes are blocks** - each note is a memory block with a path-like label, scoped to your agent
+2. **Attach = load into context** - attaching a note adds it to your agent's active memory blocks
+3. **Detach ≠ delete** - detaching removes from context but the note still exists in storage
+4. **Folders are also notes** - `/projects` and `/projects/task1` can both have content
+5. **Use descriptive paths** - the label is your only way to find notes later
