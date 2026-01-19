@@ -1,41 +1,74 @@
-# Note Tool for Letta Agents
+# Letta Notes
 
-External storage tool for Letta agents to manage persistent notes with attach/detach semantics.
+The note tool enables **context mounting** for Letta agents - a form of progressive disclosure that lets agents manage memory blocks as if they were a file system.
+
+Instead of loading everything into context at once, agents can work with an arbitrary number of text files, attaching only what's needed for the current task. This allows for active, distributed memory management - agents can peek, view, and organize information across a structured hierarchy rather than cramming everything into a single context window.
+
+Think of it as giving your agent a personal file system for structured memory. Notes persist across sessions, can be organized into folders, and are mounted/unmounted from context on demand.
 
 ## Installation
 
-Register the tool with your Letta agent:
-
 ```bash
-python create_note_tool.py
+pip install letta-client
+```
+
+## Usage
+
+Register the tool with your Letta project, then attach to your agent:
+
+```python
+note(command="attach", path="/tasks", content="TODO: Review code")
+note(command="view", path="/tasks")
+note(command="list")
 ```
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `create <path> <content>` | Create new note (not attached) |
-| `view <path>` | Read note contents |
-| `attach <path> [content]` | Load into context (supports `/folder/*`) |
-| `detach <path>` | Remove from context (supports `/folder/*`) |
-| `insert <path> <content> [line]` | Insert before line (0-indexed) |
-| `append <path> <content>` | Add content to end |
-| `replace <path> <old_str> <new_str>` | Find/replace with diff |
-| `rename <path> <new_path>` | Move/rename note |
-| `copy <path> <new_path>` | Duplicate note |
-| `delete <path>` | Permanently remove |
-| `list [query]` | List notes (prefix filter, `*` for all) |
-| `search <query> [label\|content]` | Search by label or content |
-| `attached` | Show notes in context |
+- `create` - Create a new note (not attached to context)
+- `view` - Read note contents
+- `attach` - Load note into agent context (creates if missing)
+- `detach` - Remove from context (keeps in storage)
+- `insert` - Insert content at a specific line
+- `append` - Add content to end of note
+- `replace` - Find and replace text
+- `rename` - Move/rename note
+- `copy` - Duplicate note
+- `delete` - Permanently remove note
+- `list` - List notes by path prefix
+- `search` - Search notes by label or content
+- `attached` - Show currently attached notes
 
-## Features
+## Practical Usage Patterns
 
-- **Agent-scoped storage** - Each agent's notes are isolated
-- **Attach/detach semantics** - Load notes into context or remove them
-- **Path-based organization** - Organize with paths like `/projects/webapp`
-- **Bulk operations** - Support for wildcards like `attach /folder/*`
-- **Auto-maintained directory** - A `/note_directory` block shows all notes
+**Attach/Detach for Context Management:**
+```
+note attach /reference/api-docs    # Load into context when needed
+note detach /reference/api-docs    # Remove when done to free context space
+```
 
-## License
+**Bulk Operations:**
+```
+note attach /folder/*              # Attach all notes in a folder
+note detach /folder/*              # Detach all
+```
 
-MIT
+**Progressive Disclosure:**
+- Keep detailed references in notes, only attach when relevant
+- Detach after use to keep context window lean
+- Use `note attached` to see what's currently loaded
+
+**Organizational Patterns:**
+```
+/projects/          # Project-specific notes
+/references/        # Documentation, API specs
+/learning/          # Curriculum, lesson plans
+/shared/            # Cross-agent shared content
+```
+
+## Tips
+
+1. **Notes persist across sessions** - anything stored survives conversation resets
+2. **Folders are also notes** - `/projects` and `/projects/task1` can both have content
+3. **Search before creating** - use `note search <query>` to find existing content
+4. **Prefer append over replace** for logs/journals to avoid data loss
+5. **Use descriptive paths** - they're your only way to find things later
