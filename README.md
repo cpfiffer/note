@@ -8,13 +8,17 @@ Notes persist in your Letta server and can be viewed, edited, searched, and reor
 
 ## Installation
 
+**WARNING**: Custom tools in Letta are not versioned. If you overwrite an existing tool called `note` with this one, you may not be able to restore your original tool.
+
 ```bash
-pip install letta-client
+curl -sSL https://raw.githubusercontent.com/cpfiffer/note/main/install.sh | bash
 ```
 
-## Usage
+The installer will prompt for your API key (or use `LETTA_API_KEY` if set) and attach the tool to your agent via ADE or SDK.
 
-Register the tool with your Letta project, then attach to your agent:
+It will check to see if a tool of the same name exists and confirm whether you want to overwrite it.
+
+## Usage
 
 ```python
 note(command="attach", path="/tasks", content="TODO: Review code")
@@ -78,3 +82,20 @@ Write descriptive first lines - they serve as the summary in your directory list
 3. **Detach ≠ delete** - detaching removes from context but the note still exists in storage
 4. **Folders are also notes** - `/projects` and `/projects/task1` can both have content
 5. **Use descriptive paths** - the label is your only way to find notes later
+
+## Command Permissions
+
+By default, all commands are enabled. You can restrict which commands are available by setting the `ENABLED_COMMANDS` environment variable on your Letta server:
+
+```bash
+# Enable all commands (default)
+ENABLED_COMMANDS="all"
+
+# Disable delete (safer for production)
+ENABLED_COMMANDS="create,view,attach,detach,insert,append,replace,rename,copy,list,search,attached"
+
+# Read-only mode
+ENABLED_COMMANDS="view,list,search,attached"
+```
+
+Disabled commands will return an error message listing which commands are enabled.
