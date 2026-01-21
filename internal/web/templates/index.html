@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>note-sync</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        :root {
+            --pico-font-size: 16px;
+        }
+        .container {
+            max-width: 900px;
+            padding-top: 2rem;
+        }
+        .note-tree {
+            font-family: monospace;
+        }
+        .note-item {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .note-item:hover {
+            background: var(--pico-secondary-hover-background);
+        }
+        .note-content {
+            font-family: monospace;
+            white-space: pre-wrap;
+            background: var(--pico-code-background-color);
+            padding: 1rem;
+            border-radius: 4px;
+            min-height: 300px;
+        }
+        textarea.note-editor {
+            font-family: monospace;
+            min-height: 400px;
+        }
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .agent-card {
+            cursor: pointer;
+        }
+        .agent-card:hover {
+            border-color: var(--pico-primary);
+        }
+        #toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            background: var(--pico-primary);
+            color: white;
+            border-radius: 4px;
+            display: none;
+        }
+        #toast.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div class="header-nav">
+            <h1>note-sync</h1>
+            <nav>
+                <a href="/agents">Agents</a>
+            </nav>
+        </div>
+        
+        <article>
+            <h2>Welcome to note-sync</h2>
+            <p>A bidirectional sync tool for Letta notes.</p>
+            <p><a href="/agents" role="button">Select an Agent →</a></p>
+        </article>
+    </main>
+</body>
+</html>

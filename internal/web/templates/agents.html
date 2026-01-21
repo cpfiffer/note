@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agents - note-sync</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        :root { --pico-font-size: 16px; }
+        .container { max-width: 900px; padding-top: 2rem; }
+        .agent-card {
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+        .agent-card:hover {
+            border-color: var(--pico-primary);
+        }
+        .agent-id {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--pico-muted-color);
+        }
+        .search-box {
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h1>Select Agent</h1>
+            <a href="/">← Home</a>
+        </div>
+        
+        <div class="search-box">
+            <input type="search" 
+                   name="search" 
+                   placeholder="Search agents..." 
+                   value="{{.Search}}"
+                   hx-get="/api/agents" 
+                   hx-trigger="input changed delay:300ms, search" 
+                   hx-target="#agent-list">
+        </div>
+        
+        <div id="agent-list">
+            {{template "agent-list.html" .Agents}}
+        </div>
+    </main>
+</body>
+</html>

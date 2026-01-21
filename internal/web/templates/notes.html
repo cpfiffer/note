@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+        .layout { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .sidebar { width: 250px; border-right: 1px solid #ccc; padding-right: 20px; }
+        .main { flex: 1; }
+        .note-item { padding: 8px; cursor: pointer; font-family: monospace; font-size: 14px; }
+        .note-item:hover { background: #eee; }
+        .note-item.active { background: #007bff; color: white; }
+        .toolbar { margin-bottom: 10px; }
+        .toolbar button { margin-right: 5px; padding: 5px 10px; }
+        #editor { border: 1px solid #ccc; min-height: 400px; }
+        #editor .ProseMirror { padding: 15px; min-height: 400px; outline: none; }
+        .actions { margin-top: 10px; }
+        .actions button { padding: 8px 16px; margin-right: 10px; }
+        #toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 10px 20px; border-radius: 4px; display: none; }
+        #toast.show { display: block; }
+        a { color: #007bff; }
+        h1 { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <div class="sidebar">
+            <h3>Files</h3>
+            {{range .Notes}}
+            <div class="note-item" data-path="{{.Label}}">{{.Label}}</div>
+            {{else}}
+            <p>No notes yet.</p>
+            {{end}}
+            <p style="margin-top:20px"><a href="/agents">← Change Agent</a></p>
+        </div>
+        
+        <div class="main">
+            <div id="editor-area">
+                <p>Select a note from the sidebar</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast"></div>
+    <script id="page-data" data-agent-id="{{.AgentID}}"></script>
+    
+    <script type="module">
+        import { Editor } from 'https://esm.sh/@tiptap/core@2.1.13'
+        import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.1.13'
+        import { marked } from 'https://esm.sh/marked@11.1.0'
+        import TurndownService from 'https://esm.sh/turndown@7.1.2'
+        
+        const agentID = document.getElementById('page-data').dataset.agentId;
+        let currentPath = '';
+        let editor = null;
+        const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+        
+        document.querySelectorAll('.note-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.note-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                loadNote(item.dataset.path);
+            });
+        });
+        
+        async function loadNote(path) {
+            currentPath = path;
+            const resp = await fetch('/api/note/' + agentID + path);
+            const note = await resp.json();
+            showEditor(note.label, note.value || '');
+        }
+        
+        function showEditor(path, markdown) {
+            const html = marked.parse(markdown);
+            
+            document.getElementById('editor-area').innerHTML = 
+                '<h2>' + path + '</h2>' +
+                '<div class="toolbar">' +
+                    '<button data-cmd="bold"><b>B</b></button>' +
+                    '<button data-cmd="italic"><i>I</i></button>' +
+                    '<button data-cmd="h1">H1</button>' +
+                    '<button data-cmd="h2">H2</button>' +
+                    '<button data-cmd="bullet">• List</button>' +
+                    '<button data-cmd="codeblock">Code</button>' +
+                '</div>' +
+                '<div id="editor"></div>' +
+                '<div class="actions">' +
+                    '<button id="save-btn">Save</button>' +
+                    '<button id="copy-btn">Copy Markdown</button>' +
+                '</div>';
+            
+            if (editor) editor.destroy();
+            
+            editor = new Editor({
+                element: document.getElementById('editor'),
+                extensions: [StarterKit],
+                content: html,
+            });
+            
+            document.querySelectorAll('[data-cmd]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cmd = btn.dataset.cmd;
+                    const chain = editor.chain().focus();
+                    if (cmd === 'bold') chain.toggleBold().run();
+                    if (cmd === 'italic') chain.toggleItalic().run();
+                    if (cmd === 'h1') chain.toggleHeading({level:1}).run();
+                    if (cmd === 'h2') chain.toggleHeading({level:2}).run();
+                    if (cmd === 'bullet') chain.toggleBulletList().run();
+                    if (cmd === 'codeblock') chain.toggleCodeBlock().run();
+                });
+            });
+            
+            document.getElementById('save-btn').addEventListener('click', async () => {
+                const md = turndown.turndown(editor.getHTML());
+                const resp = await fetch('/api/note/' + agentID + currentPath, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({value: md})
+                });
+                showToast(resp.ok ? 'Saved!' : 'Error');
+            });
+            
+            document.getElementById('copy-btn').addEventListener('click', () => {
+                navigator.clipboard.writeText(turndown.turndown(editor.getHTML()));
+                showToast('Copied!');
+            });
+        }
+        
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+    </script>
+</body>
+</html>

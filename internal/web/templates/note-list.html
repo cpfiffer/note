@@ -1,0 +1,7 @@
+{{range .}}
+<div class="note-item" onclick="loadNote(currentAgentID, '{{.Label}}', this)">
+    {{.Label}}
+</div>
+{{else}}
+<p class="empty-state">No notes yet.</p>
+{{end}}

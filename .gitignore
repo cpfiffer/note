@@ -18,6 +18,15 @@ ENV/
 # Letta
 .letta/
 
+# Go
+bin/
+/note-sync
+/note-sync-*
+
+# Test directories
+loop-11/
+test-sync/
+
 # OS
 .DS_Store
 Thumbs.db

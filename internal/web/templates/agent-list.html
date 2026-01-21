@@ -1,0 +1,9 @@
+{{range .}}
+<article class="agent-card" onclick="window.location='/notes?agent={{.ID}}'">
+    <strong>{{.Name}}</strong>
+    {{if .Description}}<p>{{.Description}}</p>{{end}}
+    <small class="agent-id">{{.ID}}</small>
+</article>
+{{else}}
+<p>No agents found.</p>
+{{end}}
