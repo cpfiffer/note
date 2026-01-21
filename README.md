@@ -99,3 +99,60 @@ ENABLED_COMMANDS="view,list,search,attached"
 ```
 
 Disabled commands will return an error message listing which commands are enabled.
+
+## note-sync CLI
+
+A standalone CLI tool for syncing notes between Letta and your local filesystem. Think Obsidian for Letta notes.
+
+### Installation
+
+```bash
+# Build from source
+go build -o note-sync ./cmd/note-sync
+
+# Or install directly
+go install github.com/cpfiffer/note/cmd/note-sync@latest
+```
+
+Requires `LETTA_API_KEY` environment variable.
+
+### Commands
+
+```bash
+# List your agents
+note-sync agents
+note-sync agents --name cameron    # Search by name
+
+# Initialize a sync directory
+note-sync init <agent_id>
+note-sync init <agent_id> --dir ~/my-notes
+
+# Sync notes
+note-sync pull                     # Download from Letta
+note-sync push                     # Upload to Letta
+note-sync status                   # Show what's changed
+
+# Web UI
+note-sync serve                    # Start web UI at localhost:8080
+note-sync serve --port 3000
+```
+
+### File Mapping
+
+Notes map to local markdown files:
+```
+/projects/webapp  →  projects/webapp.md
+/todo             →  todo.md
+```
+
+### Conflict Handling
+
+When both local and remote have changed, `pull` creates `.conflict.md` files so you don't lose data. Resolve manually, then push.
+
+### Web UI
+
+`note-sync serve` starts a local web server with:
+- Agent selection with search
+- Note browser sidebar  
+- Rich text editor (Tiptap) with markdown round-trip
+- Save directly to Letta
