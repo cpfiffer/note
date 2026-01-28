@@ -218,7 +218,9 @@ def note(
                     return f"Already attached: {path}"
             else:
                 new_block = client.blocks.create(
-                    label=path, value=content or "", description=f"owner:{agent_id}"
+                    label=path,
+                    value=content or "",
+                    description=f"type:note|owner:{agent_id}",
                 )
                 block_id = new_block.id
                 update_directory = True  # New note created
@@ -307,6 +309,12 @@ def note(
             if not blocks:
                 return f"Note not found: {path}"
 
+            # Validate new_path
+            if len(new_path) > MAX_PATH_LENGTH:
+                return f"Error: New path too long ({len(new_path)} chars, max {MAX_PATH_LENGTH})"
+            if not new_path.startswith("/"):
+                return f"Error: New path must start with '/'. Got: {new_path}"
+
             # Check destination doesn't exist
             dest_blocks = list(
                 client.blocks.list(label=new_path, description_search=agent_id).items
@@ -331,6 +339,12 @@ def note(
             )
             if not blocks:
                 return f"Note not found: {path}"
+
+            # Validate new_path
+            if len(new_path) > MAX_PATH_LENGTH:
+                return f"Error: New path too long ({len(new_path)} chars, max {MAX_PATH_LENGTH})"
+            if not new_path.startswith("/"):
+                return f"Error: New path must start with '/'. Got: {new_path}"
 
             # Check destination doesn't exist
             dest_blocks = list(
