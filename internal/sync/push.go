@@ -85,7 +85,7 @@ func Push(client *api.Client, state *State, opts PushOptions) (*PushResult, erro
 		fileState, hasState := state.Files[notePath]
 
 		// Get remote block
-		ownerSearch := fmt.Sprintf("owner:%s", state.AgentID)
+		ownerSearch := fmt.Sprintf("type:note|owner:%s", state.AgentID)
 		blocks, err := client.ListBlocks(ownerSearch)
 		if err != nil {
 			return fmt.Errorf("failed to list blocks: %w", err)
@@ -137,7 +137,7 @@ func Push(client *api.Client, state *State, opts PushOptions) (*PushResult, erro
 			}
 		} else {
 			// Create new block
-			description := fmt.Sprintf("owner:%s", state.AgentID)
+			description := fmt.Sprintf("type:note|owner:%s", state.AgentID)
 			block, err := client.CreateBlock(notePath, localContent, description)
 			if err != nil {
 				return fmt.Errorf("failed to create block %s: %w", notePath, err)

@@ -35,7 +35,7 @@ func Pull(client *api.Client, state *State, opts PullOptions) (*PullResult, erro
 	uuidPattern := regexp.MustCompile(`/\[?agent-[a-f0-9-]+\]?/`)
 
 	// Fetch all blocks for this agent
-	ownerSearch := fmt.Sprintf("owner:%s", state.AgentID)
+	ownerSearch := fmt.Sprintf("type:note|owner:%s", state.AgentID)
 	blocks, err := client.ListBlocks(ownerSearch)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list blocks: %w", err)
