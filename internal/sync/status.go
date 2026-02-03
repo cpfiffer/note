@@ -28,7 +28,7 @@ func Status(client *api.Client, state *State, dir string) (*StatusResult, error)
 	// Pattern to filter out legacy UUID paths
 	uuidPattern := regexp.MustCompile(`/\[?agent-[a-f0-9-]+\]?/`)
 
-	// Get remote blocks
+	// Get remote blocks (search broadly to include legacy notes)
 	ownerSearch := fmt.Sprintf("owner:%s", state.AgentID)
 	blocks, err := client.ListBlocks(ownerSearch)
 	if err != nil {

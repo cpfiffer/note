@@ -100,6 +100,34 @@ ENABLED_COMMANDS="view,list,search,attached"
 
 Disabled commands will return an error message listing which commands are enabled.
 
+## Safety Features
+
+**Protected Labels:**
+- System blocks (`human`, `persona`, `skills`, `loaded_skills`, `assistant`, `project`) cannot be deleted
+- Prevents accidental deletion of core agent memory
+
+**Note Marker:**
+- All notes use `type:note|owner:{agent_id}` description schema
+- Distinguishes user notes from system blocks
+
+**Path Validation:**
+- Note paths must start with `/`
+- Maximum path length: 50 characters
+- Prevents malformed note paths
+
+**Content Limits:**
+- Note content limited to 20,000 characters
+- Ensures context window remains manageable
+
+**Delete Safety:**
+- Delete only works on notes (verified by marker)
+- System blocks and unlabeled blocks are protected
+
+**Backward Compatibility:**
+- Legacy notes (with `owner:{agent_id}` but no `type:note`) are automatically migrated when accessed
+- No manual migration required - notes upgrade to new format on first use
+- `note list`, `note search`, and `note attached` show both legacy and new format notes
+
 ## note-sync CLI
 
 A standalone CLI tool for syncing notes between Letta and your local filesystem. Think Obsidian for Letta notes.

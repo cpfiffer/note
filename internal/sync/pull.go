@@ -34,7 +34,7 @@ func Pull(client *api.Client, state *State, opts PullOptions) (*PullResult, erro
 	// Pattern to filter out legacy UUID paths and note_directory
 	uuidPattern := regexp.MustCompile(`/\[?agent-[a-f0-9-]+\]?/`)
 
-	// Fetch all blocks for this agent
+	// Fetch all blocks for this agent (search broadly to include legacy notes)
 	ownerSearch := fmt.Sprintf("owner:%s", state.AgentID)
 	blocks, err := client.ListBlocks(ownerSearch)
 	if err != nil {
