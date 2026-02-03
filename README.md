@@ -120,8 +120,13 @@ Disabled commands will return an error message listing which commands are enable
 - Ensures context window remains manageable
 
 **Delete Safety:**
-- Delete only works on blocks with `type:note` marker
+- Delete only works on notes (verified by marker)
 - System blocks and unlabeled blocks are protected
+
+**Backward Compatibility:**
+- Legacy notes (with `owner:{agent_id}` but no `type:note`) are automatically migrated when accessed
+- No manual migration required - notes upgrade to new format on first use
+- `note list`, `note search`, and `note attached` show both legacy and new format notes
 
 ## note-sync CLI
 

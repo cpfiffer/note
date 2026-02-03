@@ -4,6 +4,33 @@ from typing import Optional
 import re
 
 
+def _is_note(block, agent_id: str) -> bool:
+    """Check if block is a note (new or legacy format)."""
+    if not block.description or not block.label:
+        return False
+    if not block.label.startswith("/"):
+        return False
+    # New format: type:note|owner:{agent_id}
+    if f"type:note|owner:{agent_id}" in block.description:
+        return True
+    # Legacy format: owner:{agent_id} (without type:note)
+    if f"owner:{agent_id}" in block.description:
+        return True
+    return False
+
+
+def _migrate_if_needed(client, block, agent_id: str) -> bool:
+    """Auto-migrate legacy note to new format. Returns True if migrated."""
+    if not block.description:
+        return False
+    # Check if legacy format (has owner: but not type:note)
+    if f"owner:{agent_id}" in block.description and "type:note" not in block.description:
+        new_desc = f"type:note|{block.description}"
+        client.blocks.update(block_id=block.id, description=new_desc)
+        return True
+    return False
+
+
 def note(
     command: str,
     path: Optional[str] = None,
@@ -171,10 +198,12 @@ def note(
             if not blocks:
                 return f"Note not found: {path}"
 
-            # SAFETY: Check if block is a note (allow viewing with warning for backwards compatibility)
             block = blocks[0]
-            if not block.description or "type:note" not in block.description:
-                return f"Warning: '{path}' is not a note (missing type:note marker)\n\n{block.value}"
+            # Auto-migrate legacy notes on access
+            if _migrate_if_needed(client, block, agent_id):
+                pass  # Migrated silently
+            elif not _is_note(block, agent_id):
+                return f"Error: '{path}' is not a note"
 
             return block.value
 
@@ -269,6 +298,8 @@ def note(
                 return f"Note not found: {path}. Use 'attach' first."
 
             block = blocks[0]
+            # Auto-migrate legacy notes on write
+            _migrate_if_needed(client, block, agent_id)
             lines = block.value.split("\n") if block.value else []
 
             if insert_line is not None:
@@ -291,6 +322,8 @@ def note(
                 return f"Note not found: {path}. Use 'attach' first."
 
             block = blocks[0]
+            # Auto-migrate legacy notes on write
+            _migrate_if_needed(client, block, agent_id)
             if block.value:
                 new_value = block.value + "\n" + content
             else:
@@ -322,10 +355,11 @@ def note(
             if dest_blocks:
                 return f"Error: Destination already exists: {new_path}"
 
-            # SAFETY: Verify source is a note
             block = blocks[0]
-            if not block.description or "type:note" not in block.description:
-                return f"Error: Cannot rename '{path}' - not a note (missing type:note marker)"
+            # Auto-migrate legacy notes, verify it's a note
+            _migrate_if_needed(client, block, agent_id)
+            if not _is_note(block, agent_id):
+                return f"Error: Cannot rename '{path}' - not a note"
 
             # Update the label
             client.blocks.update(block_id=block.id, label=new_path)
@@ -371,6 +405,8 @@ def note(
                 return f"Note not found: {path}"
 
             block = blocks[0]
+            # Auto-migrate legacy notes on write
+            _migrate_if_needed(client, block, agent_id)
             if old_str not in block.value:
                 return "Error: old_str not found in note. Exact match required."
 
@@ -386,10 +422,11 @@ def note(
             if not blocks:
                 return f"Note not found: {path}"
 
-            # SAFETY: Verify block is a note (has type:note marker)
             block = blocks[0]
-            if not block.description or "type:note" not in block.description:
-                return f"Error: Cannot delete '{path}' - not a note (missing type:note marker)"
+            # Auto-migrate legacy notes, verify it's a note before deleting
+            _migrate_if_needed(client, block, agent_id)
+            if not _is_note(block, agent_id):
+                return f"Error: Cannot delete '{path}' - not a note"
 
             client.blocks.delete(block_id=block.id)
             update_directory = True
@@ -398,15 +435,14 @@ def note(
         elif command == "list":
             all_blocks = list(client.blocks.list(description_search=agent_id).items)
 
-            # Filter to path-like labels, exclude legacy UUID paths, only show notes
+            # Filter to path-like labels, exclude legacy UUID paths, include new and legacy notes
             blocks = [
                 b
                 for b in all_blocks
                 if b.label
                 and b.label.startswith("/")
                 and not uuid_pattern.search(b.label)
-                and b.description
-                and "type:note" in b.description
+                and _is_note(b, agent_id)
             ]
 
             # Apply prefix filter if query provided
@@ -427,15 +463,14 @@ def note(
         elif command == "search":
             all_blocks = list(client.blocks.list(description_search=agent_id).items)
 
-            # Filter out legacy UUID paths and non-notes
+            # Filter out legacy UUID paths, include new and legacy notes
             all_blocks = [
                 b
                 for b in all_blocks
                 if b.label
                 and b.label.startswith("/")
                 and not uuid_pattern.search(b.label)
-                and b.description
-                and "type:note" in b.description
+                and _is_note(b, agent_id)
             ]
 
             if search_type == "label":
@@ -463,8 +498,7 @@ def note(
                 if b.label
                 and b.label.startswith("/")
                 and not uuid_pattern.search(b.label)
-                and b.description
-                and "type:note" in b.description
+                and _is_note(b, agent_id)
             ]
 
             if not note_blocks:
